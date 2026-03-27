@@ -25,7 +25,6 @@ namespace GymMembershipManagement.API
 
             builder.Services.AddEndpointsApiExplorer();
 
-            // დავამატე ვერსიის აღწერა, რომ SwaggerUI-მ სწორად წაიკითხოს Endpoint
             builder.Services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "Gym API", Version = "v1" });
@@ -49,21 +48,25 @@ namespace GymMembershipManagement.API
 
             var app = builder.Build();
 
-            // Swagger კონფიგურაცია
-            if (app.Environment.IsDevelopment())
+            // Swagger კონფიგურაცია - მოვაცილეთ IsDevelopment შემოწმება, რომ ონლაინაც გამოჩნდეს
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
             {
-                app.UseSwagger();
-                app.UseSwaggerUI(c =>
-                {
-                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Gym API V1");
-                    c.RoutePrefix = "swagger";
-                });
-            }
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Gym API V1");
+                // RoutePrefix დავტოვოთ "swagger", რომ ორივეგან ერთ მისამართზე იყოს
+                c.RoutePrefix = "swagger";
+            });
 
             app.UseStaticFiles();
             app.UseHttpsRedirection();
             app.UseAuthorization();
             app.MapControllers();
+
+            // დავამატოთ გადამისამართება მთავარი გვერდიდან Swagger-ზე (სურვილისამებრ)
+            app.MapGet("/", context => {
+                context.Response.Redirect("/swagger/index.html");
+                return Task.CompletedTask;
+            });
 
             app.Run();
         }
