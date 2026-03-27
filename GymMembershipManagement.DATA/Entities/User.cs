@@ -18,6 +18,7 @@ namespace GymMembershipManagement.DATA.Entities
         [MaxLength(30)]
         public string Username { get; set; } = null!;
         [Required]
+        [MaxLength(60)]
         public string PasswordHash { get; set; } = null!;
         [Required]
         public string Email { get; set; } = null!;

@@ -24,7 +24,12 @@ namespace GymMembershipManagement.API
             builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>(), typeof(MappingProfile).Assembly);
 
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+
+            // დავამატე ვერსიის აღწერა, რომ SwaggerUI-მ სწორად წაიკითხოს Endpoint
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "Gym API", Version = "v1" });
+            });
 
             // Repositories
             builder.Services.AddScoped<IGymClassRepository, GymClassRepository>();
@@ -44,18 +49,18 @@ namespace GymMembershipManagement.API
 
             var app = builder.Build();
 
-            //if (app.Environment.IsDevelopment())
-            //{
-            //    app.UseSwagger();
-            //    app.UseSwaggerUI();
-            //}
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
+            // Swagger კონფიგურაცია
+            if (app.Environment.IsDevelopment())
             {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
-                c.RoutePrefix = string.Empty; // ეს Swagger-ს მთავარ გვერდზე გახსნის
-            });
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Gym API V1");
+                    c.RoutePrefix = "swagger";
+                });
+            }
 
+            app.UseStaticFiles();
             app.UseHttpsRedirection();
             app.UseAuthorization();
             app.MapControllers();

@@ -40,8 +40,11 @@ namespace GymMembershipManagement.SERVICE
 
         public async Task<UserDTO> Login(string username, string password)
         {
-            var users = await _userRepository.GetAllAsync();
-            var user = users.FirstOrDefault(u => u.Username == username);
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+                throw new ArgumentException("Username and password are required");
+
+            var user = await _userRepository.GetByUsernameAsync(username);
+
             if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
                 throw new UnauthorizedAccessException("Invalid username or password");
 
@@ -59,7 +62,8 @@ namespace GymMembershipManagement.SERVICE
         public async Task<UserDTO> GetProfile(int userId)
         {
             var user = await _userRepository.GetByIdAsync(userId);
-            if (user == null) throw new Exception("User not found");
+            if (user == null) 
+                throw new KeyNotFoundException($"User with ID {userId} not found");
 
             return new UserDTO
             {
@@ -75,25 +79,64 @@ namespace GymMembershipManagement.SERVICE
         public async Task UpdateProfile(int userId, UpdateUserModel model)
         {
             var user = await _userRepository.GetByIdAsync(userId);
-            if (user == null) throw new Exception("User not found");
+            if (user == null) 
+                throw new KeyNotFoundException($"User with ID {userId} not found");
 
-            if (model.Username != null) user.Username = model.Username;
-            if (model.Email != null) user.Email = model.Email;
+            bool userChanged = false;
+            bool personChanged = false;
+
+            if (!string.IsNullOrWhiteSpace(model.Username) && model.Username != user.Username)
+            {
+                user.Username = model.Username;
+                userChanged = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Email) && model.Email != user.Email)
+            {
+                user.Email = model.Email;
+                userChanged = true;
+            }
 
             if (user.Person != null)
             {
-                if (model.FirstName != null) user.Person.FirstName = model.FirstName;
-                if (model.LastName != null) user.Person.LastName = model.LastName;
-                if (model.Phone != null) user.Person.Phone = model.Phone;
-                if (model.Address != null) user.Person.Address = model.Address;
-                await _personRepository.UpdateAsync(user.Person);
+                if (!string.IsNullOrWhiteSpace(model.FirstName) && model.FirstName != user.Person.FirstName)
+                {
+                    user.Person.FirstName = model.FirstName;
+                    personChanged = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(model.LastName) && model.LastName != user.Person.LastName)
+                {
+                    user.Person.LastName = model.LastName;
+                    personChanged = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(model.Phone) && model.Phone != user.Person.Phone)
+                {
+                    user.Person.Phone = model.Phone;
+                    personChanged = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(model.Address) && model.Address != user.Person.Address)
+                {
+                    user.Person.Address = model.Address;
+                    personChanged = true;
+                }
+
+                if (personChanged)
+                    await _personRepository.UpdateAsync(user.Person);
             }
 
-            await _userRepository.UpdateAsync(user);
+            if (userChanged)
+                await _userRepository.UpdateAsync(user);
         }
 
         public async Task DeleteProfile(int userId)
         {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) 
+                throw new KeyNotFoundException($"User with ID {userId} not found");
+
             await _userRepository.DeleteAsync(userId);
         }
 
